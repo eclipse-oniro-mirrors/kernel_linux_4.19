@@ -121,6 +121,15 @@ BINDER_DEBUG_ENTRY(proc);
 
 #define FORBIDDEN_MMAP_FLAGS                (VM_WRITE)
 
+#ifdef CONFIG_ACCESS_TOKENID
+#define ENABLE_ACCESS_TOKENID 1
+#else
+#define ENABLE_ACCESS_TOKENID 0
+#endif /* CONFIG_ACCESS_TOKENID */
+
+#define ACCESS_TOKENID_FEATURE_VALUE (ENABLE_ACCESS_TOKENID << 0)
+#define BINDER_CURRENT_FEATURE_SET ACCESS_TOKENID_FEATURE_VALUE
+
 enum {
 	BINDER_DEBUG_USER_ERROR             = 1U << 0,
 	BINDER_DEBUG_FAILED_TRANSACTION     = 1U << 1,
@@ -609,6 +618,9 @@ struct binder_thread {
 	struct binder_stats stats;
 	atomic_t tmp_ref;
 	bool is_dead;
+#ifdef CONFIG_ACCESS_TOKENID
+	struct access_token tokens;
+#endif /* CONFIG_ACCESS_TOKENID */
 };
 
 struct binder_transaction {
@@ -635,6 +647,10 @@ struct binder_transaction {
 	 * during thread teardown
 	 */
 	spinlock_t lock;
+#ifdef CONFIG_ACCESS_TOKENID
+	u64 sender_tokenid;
+	u64 first_tokenid;
+#endif /* CONFIG_ACCESS_TOKENID */
 };
 
 /**
@@ -2963,6 +2979,10 @@ static void binder_transaction(struct binder_proc *proc,
 	else
 		t->from = NULL;
 	t->sender_euid = task_euid(proc->tsk);
+#ifdef CONFIG_ACCESS_TOKENID
+	t->sender_tokenid = current->token;
+	t->first_tokenid = current->ftoken;
+#endif /* CONFIG_ACCESS_TOKENID */
 	t->to_proc = target_proc;
 	t->to_thread = target_thread;
 	t->code = tr->code;
@@ -4182,6 +4202,12 @@ retry:
 		if (t_from)
 			binder_thread_dec_tmpref(t_from);
 		t->buffer->allow_user_free = 1;
+#ifdef CONFIG_ACCESS_TOKENID
+		binder_inner_proc_lock(thread->proc);
+		thread->tokens.sender_tokenid = t->sender_tokenid;
+		thread->tokens.first_tokenid = t->first_tokenid;
+		binder_inner_proc_unlock(thread->proc);
+#endif /* CONFIG_ACCESS_TOKENID */
 		if (cmd == BR_TRANSACTION && !(t->flags & TF_ONE_WAY)) {
 			binder_inner_proc_lock(thread->proc);
 			t->to_parent = thread->transaction_stack;
@@ -4689,6 +4715,43 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}
 		break;
 	}
+	case BINDER_FEATURE_SET: {
+		struct binder_feature_set __user *features = ubuf;
+
+		if (size != sizeof(struct binder_feature_set)) {
+			ret = -EINVAL;
+			goto err;
+		}
+		if (put_user(BINDER_CURRENT_FEATURE_SET, &features->feature_set)) {
+			ret = -EINVAL;
+			goto err;
+		}
+		break;
+	}
+#ifdef CONFIG_ACCESS_TOKENID
+	case BINDER_GET_ACCESS_TOKEN: {
+		struct access_token __user *tokens = ubuf;
+		u64 token, ftoken;
+
+		if (size != sizeof(struct access_token)) {
+			ret = -EINVAL;
+			goto err;
+		}
+		binder_inner_proc_lock(proc);
+		token = thread->tokens.sender_tokenid;
+		ftoken = thread->tokens.first_tokenid;
+		binder_inner_proc_unlock(proc);
+		if (put_user(token, &tokens->sender_tokenid)) {
+			ret = -EINVAL;
+			goto err;
+		}
+		if (put_user(ftoken, &tokens->first_tokenid)) {
+			ret = -EINVAL;
+			goto err;
+		}
+		break;
+	}
+#endif /* CONFIG_ACCESS_TOKENID */
 	default:
 		ret = -EINVAL;
 		goto err;
