@@ -105,6 +105,7 @@ struct ramoops_context {
 	size_t console_size;
 	size_t ftrace_size;
 	size_t pmsg_size;
+	int dump_oops;
 	size_t blackbox_size;
 	u32 flags;
 	struct persistent_ram_ecc_info ecc_info;
