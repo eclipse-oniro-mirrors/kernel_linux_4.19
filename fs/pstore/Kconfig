@@ -137,6 +137,18 @@ config PSTORE_FTRACE
 
 	  If unsure, say N.
 
+config PSTORE_BLACKBOX
+	bool "Store customised fault log"
+	depends on PSTORE
+	depends on BLACKBOX
+	help
+	  Enable storing the customised fault log for BlackBox.
+
+	  With the option enabled, pstore will store the customised kernel
+	  fault log for BlackBox when oops or panic happened.
+
+	  If unsure, say N.
+
 config PSTORE_RAM
 	tristate "Log panic/oops to a RAM buffer"
 	depends on PSTORE
@@ -153,3 +165,11 @@ config PSTORE_RAM
 	  "ramoops.ko".
 
 	  For more information, see Documentation/admin-guide/ramoops.rst.
+config PSTORE_BLACKBOX_STACK_SIZE
+	int "Default stack size for BlackBox" if EXPERT
+	depends on PSTORE
+	depends on PSTORE_BLACKBOX
+	default 1024
+	help
+	  Defines default size of pstore stack size for blackbox.
+	  Can be enlarged if needed. not recommended to shrink it.
