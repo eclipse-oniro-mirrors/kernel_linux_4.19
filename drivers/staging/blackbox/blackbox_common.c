@@ -13,8 +13,8 @@
 #include <linux/vmalloc.h>
 #include <linux/fs.h>
 #include <linux/namei.h>
-#include <linux/blackbox_common.h>
 #include <linux/slab.h>
+#include <linux/blackbox_common.h>
 
 void sys_reset(void)
 {
@@ -57,7 +57,7 @@ int full_write_file(const char *pfile_path, char *buf,
 	}
 
 	filp = file_open(pfile_path, O_CREAT | O_RDWR |
-			(is_append ? O_APPEND : O_TRUNC), 0);
+			(is_append ? O_APPEND : O_TRUNC), BBOX_FILE_LIMIT);
 	if (IS_ERR(filp)) {
 		bbox_print_err("open %s failed! [%ld]\n", pfile_path, PTR_ERR(filp));
 		return -EBADF;
@@ -218,9 +218,6 @@ struct file *file_open(const char *filename, int open_mode, int mode)
 
 	filp = filp_open(filename, open_mode, mode);
 	set_fs(old_fs);
-
-	if (IS_ERR(filp))
-		return NULL;
 
 	return filp;
 }

@@ -254,7 +254,7 @@ static int pstore_compress(const void *in, void *out,
 {
 	int ret;
 
-	if (!IS_ENABLED(CONFIG_PSTORE_COMPRESSION))
+	if (!IS_ENABLED(CONFIG_PSTORE_COMPRESS))
 		return -EINVAL;
 
 	ret = crypto_comp_compress(tfm, in, inlen, out, &outlen);
@@ -388,8 +388,8 @@ static void dump_stacktrace(char *pbuf, size_t buf_size, bool is_panic)
 	int i;
 	size_t stack_len = 0;
 	size_t com_len = 0;
+	struct stack_trace trace;
 	unsigned long entries[CALLSTACK_MAX_ENTRIES];
-	unsigned int nr_entries;
 	char tmp_buf[ERROR_DESC_MAX_LEN];
 	bool find_panic = false;
 
@@ -398,16 +398,21 @@ static void dump_stacktrace(char *pbuf, size_t buf_size, bool is_panic)
 
 	memset(pbuf, 0, buf_size);
 	memset(tmp_buf, 0, sizeof(tmp_buf));
-	nr_entries = stack_trace_save(entries, ARRAY_SIZE(entries), 0);
+	trace.nr_entries = 0;
+	trace.max_entries = (unsigned int)ARRAY_SIZE(entries);
+	trace.entries = entries;
+	trace.skip = 0;
+	save_stack_trace(&trace);
 	com_len = scnprintf(pbuf, buf_size, "Comm:%s,CPU:%d,Stack:",
 						current->comm, raw_smp_processor_id());
-	for (i = 0; i < nr_entries; i++) {
+	for (i = 0; i < (int)trace.nr_entries; i++) {
+		stack_len = strlen(tmp_buf);
 		if (stack_len >= sizeof(tmp_buf)) {
 			tmp_buf[sizeof(tmp_buf) - 1] = '\0';
 			break;
 		}
-		stack_len += scnprintf(tmp_buf + stack_len, sizeof(tmp_buf) - stack_len,
-				"%pS-", (void *)entries[i]);
+		scnprintf(tmp_buf + stack_len, sizeof(tmp_buf) - stack_len,
+				"%pS-", (void *)(uintptr_t)trace.entries[i]);
 		if (!find_panic && is_panic) {
 			if (strncmp(tmp_buf, "panic", strlen("panic")) == 0)
 				find_panic = true;
@@ -436,13 +441,13 @@ void pstore_blackbox_dump(struct kmsg_dumper *dumper, enum kmsg_dump_reason reas
 		return;
 #endif
 
-	why = kmsg_dump_reason_str(reason);
+	why = get_reason_str(reason);
 
 	if (down_trylock(&psinfo->buf_lock)) {
 		/* Failed to acquire lock: give up if we cannot wait. */
 		if (pstore_cannot_wait(reason)) {
 			pr_err("dump skipped in %s path: may corrupt error record\n",
-			       in_nmi() ? "NMI" : why);
+				in_nmi() ? "NMI" : why);
 			return;
 		}
 		if (down_interruptible(&psinfo->buf_lock)) {
@@ -762,7 +767,7 @@ static void decompress_record(struct pstore_record *record)
 	int unzipped_len;
 	char *decompressed;
 
-	if (!IS_ENABLED(CONFIG_PSTORE_COMPRESSION) || !record->compressed)
+	if (!IS_ENABLED(CONFIG_PSTORE_COMPRESS) || !record->compressed)
 		return;
 
 	/* Only PSTORE_TYPE_DMESG support compression. */

@@ -31,14 +31,6 @@
 #define TOP_CATEGORY_FREEZE            "System Freeze"
 #define TOP_CATEGORY_SYSTEM_POWEROFF   "POWEROFF"
 #define TOP_CATEGORY_SUBSYSTEM_CRASH   "Subsystem Crash"
-#define CATEGORY_SYSTEM_REBOOT         "SYSREBOOT"
-#define CATEGORY_SYSTEM_POWEROFF       "POWEROFF"
-#define CATEGORY_SYSTEM_PANIC          "PANIC"
-#define CATEGORY_SYSTEM_OOPS           "OOPS"
-#define CATEGORY_SYSTEM_CUSTOM         "CUSTOM"
-#define CATEGORY_SYSTEM_WATCHDOG       "HWWATCHDOG"
-#define CATEGORY_SYSTEM_HUNGTASK       "HUNGTASK"
-#define CATEGORY_SUBSYSTEM_CUSTOM      "CUSTOM"
 
 #ifndef CONFIG_BLACKBOX_LOG_ROOT_PATH
 #error no blackbox log root path
@@ -103,6 +95,9 @@ static struct error_info_to_category error_info_categories[] = {
 		MODULE_SYSTEM,
 		{EVENT_HUNGTASK, CATEGORY_SYSTEM_HUNGTASK, TOP_CATEGORY_FREEZE}
 	},
+#ifdef CONFIG_BLACKBOX_EXPAND_EVENT
+	#include <linux/blackbox_expand_event.h>
+#endif
 };
 
 struct error_info *temp_error_info;
@@ -198,6 +193,8 @@ static void format_error_info(struct error_info *info, const char event[EVENT_MA
 				sizeof(info->event) - 1));
 	strncpy(info->module, module, min(strlen(module),
 				sizeof(info->module) - 1));
+	strncpy(info->category, get_category(module, event),
+				min(strlen(get_category(module, event)), sizeof(info->category) - 1));
 	get_timestamp(info->error_time, TIMESTAMP_MAX_LEN);
 	strncpy(info->error_desc, error_desc, min(strlen(error_desc),
 				sizeof(info->error_desc) - 1));
@@ -222,7 +219,7 @@ static void save_history_log(const char *log_root_dir, struct error_info *info,
 	memset(buf, 0, HISTORY_LOG_MAX_LEN + 1);
 	scnprintf(buf, HISTORY_LOG_MAX_LEN, HISTORY_LOG_FORMAT,
 			get_top_category(info->module, info->event), info->module,
-			get_category(info->module, info->event), info->event, timestamp,
+			info->category, info->event, timestamp,
 			need_sys_reset ? "true" : "false", info->error_desc);
 #ifdef CONFIG_DFX_ZEROHUNG
 	zrhung_send_event("KERNEL_VENDOR", "PANIC", info->error_desc);
@@ -295,7 +292,7 @@ static bool find_module_ops(struct error_info *info, struct bbox_ops **ops)
 static void invoke_module_ops(const char *log_dir, struct error_info *info,
 					struct bbox_ops *ops)
 {
-	if (unlikely(!info || !!ops)) {
+	if (unlikely(!info || !ops)) {
 		bbox_print_err("info: %p, ops: %p!\n", info, ops);
 		return;
 	}
@@ -337,6 +334,7 @@ static void save_log_without_reset(struct error_info *info)
 	create_log_dir(CONFIG_BLACKBOX_LOG_ROOT_PATH);
 	if (ops->ops.dump) {
 		/* create log root path */
+		log_dir = vmalloc(PATH_MAX_LEN);
 		if (log_dir) {
 			format_log_dir(log_dir, PATH_MAX_LEN,
 						CONFIG_BLACKBOX_LOG_ROOT_PATH, timestamp);
@@ -346,8 +344,7 @@ static void save_log_without_reset(struct error_info *info)
 	}
 	invoke_module_ops(log_dir, info, ops);
 	save_history_log(CONFIG_BLACKBOX_LOG_ROOT_PATH, info, timestamp, 0);
-	if (log_dir)
-		vfree(log_dir);
+	vfree(log_dir);
 }
 
 static void save_log_with_reset(struct error_info *info)
@@ -363,7 +360,8 @@ static void save_log_with_reset(struct error_info *info)
 		return;
 
 	invoke_module_ops("", info, ops);
-	if (strcmp(info->event, EVENT_SYSREBOOT))
+	if (strcmp(info->category, CATEGORY_SYSTEM_REBOOT) &&
+		strcmp(info->category, CATEGORY_SYSTEM_PANIC))
 		sys_reset();
 }
 

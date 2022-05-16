@@ -9,13 +9,13 @@
 #include <linux/types.h>
 
 /* bbox/BBOX - blackbox */
-#define YEAR_BASE            1900
-#define SECONDS_PER_MINUTE   60
-#define AID_ROOT             0
-#define AID_SYSTEM           1000
-#define BBOX_DIR_LIMIT       0775
-#define BBOX_FILE_LIMIT      0664
-#define PATH_MAX_LEN         256
+#define YEAR_BASE 1900
+#define SECONDS_PER_MINUTE 60
+#define AID_ROOT 0
+#define AID_SYSTEM 1000
+#define BBOX_DIR_LIMIT 0775
+#define BBOX_FILE_LIMIT 0664
+#define PATH_MAX_LEN 256
 
 /*
  * format:
