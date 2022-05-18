@@ -55,3 +55,4 @@ obj-$(CONFIG_XIL_AXIS_FIFO)	+= axis-fifo/
 obj-$(CONFIG_EROFS_FS)		+= erofs/
 obj-$(CONFIG_HILOG) 		+= hilog/
 obj-$(CONFIG_HIEVENT) 		+= hievent/
+obj-$(CONFIG_BLACKBOX) 		+= blackbox/
