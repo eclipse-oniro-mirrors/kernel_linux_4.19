@@ -363,6 +363,7 @@ static void save_log_with_reset(struct error_info *info)
 	if (strcmp(info->category, CATEGORY_SYSTEM_REBOOT) &&
 		strcmp(info->category, CATEGORY_SYSTEM_PANIC))
 		sys_reset();
+	bbox_print_info("save_log_with_reset category is [%s]", info->category);
 }
 
 static void save_temp_error_info(const char event[EVENT_MAX_LEN],
