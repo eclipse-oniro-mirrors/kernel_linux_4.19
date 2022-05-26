@@ -380,7 +380,7 @@ static void save_temp_error_info(const char event[EVENT_MAX_LEN],
 	up(&temp_error_info_sem);
 }
 
-static void do_save_last_log(const struct bbox_ops *ops, const struct error_info *info)
+static void do_save_last_log(const struct bbox_ops *ops, struct error_info *info)
 {
 	char *log_dir = NULL;
 	int ret;
@@ -399,6 +399,10 @@ static void do_save_last_log(const struct bbox_ops *ops, const struct error_info
 			save_invalid_log(ops, info);
 		return;
 	}
+
+	strncpy(info->category, get_category(info->module, info->event),
+	       min(strlen(get_category(info->module, info->event)), sizeof(info->category) - 1));
+
 	bbox_print_info("[%s] starts saving log!\n", ops->ops.module);
 	bbox_print_info("event: [%s] module: [%s], time is [%s]!\n",
 			info->event, info->module, info->error_time);
