@@ -427,6 +427,18 @@ static void dump_stacktrace(char *pbuf, size_t buf_size, bool is_panic)
 	*(pbuf + buf_size - 1) = '\0';
 }
 
+static bool pstore_blackbox_handle(enum kmsg_dump_reason reason)
+{
+	switch (reason) {
+	case KMSG_DUMP_PANIC:
+	case KMSG_DUMP_RESTART:
+	case KMSG_DUMP_POWEROFF:
+		return true;
+	default:
+		return false;
+	}
+}
+
 void pstore_blackbox_dump(struct kmsg_dumper *dumper, enum kmsg_dump_reason reason)
 {
 	struct fault_log_info *pfault_log_info;
@@ -442,6 +454,10 @@ void pstore_blackbox_dump(struct kmsg_dumper *dumper, enum kmsg_dump_reason reas
 #endif
 
 	why = get_reason_str(reason);
+
+	if (!pstore_blackbox_handle(reason)) {
+		return;
+	}
 
 	if (down_trylock(&psinfo->buf_lock)) {
 		/* Failed to acquire lock: give up if we cannot wait. */
