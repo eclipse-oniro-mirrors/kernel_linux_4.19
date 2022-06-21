@@ -59,11 +59,21 @@ Note:If the text contains special characters, please escape them according to th
 	<licensefile></licensefile>
 	<policylist>
             <policy name="projectPolicy" desc="">
-                <policyitem type="license" name="GPL" path=".*" desc="linux kernel adapter codes"/>
-				<policyitem type="copyright" name="Huawei Technologies Co., Ltd." path="include/linux/blackbox.h" desc="huawei copyright"/>
+                                                                <policyitem type="copyright" name="Huawei Technologies Co., Ltd." path="include/linux/blackbox.h" desc="huawei copyright"/>
 				<policyitem type="copyright" name="Huawei Technologies Co., Ltd." path="include/linux/blackbox_common.h" desc="huawei copyright"/>
 				<policyitem type="copyright" name="Huawei Technologies Co., Ltd." path="include/linux/blackbox_storage.h" desc="huawei copyright"/>
-            </policy>
+				<policyitem type="copyright" name="Intel" path="net/mac80211/rx.c" desc="linux kernel adapter codes"/>
+				<policyitem type="copyright" name="Intel Corporation" path="net/mac80211/iface.c" desc="linux kernel adapter codes"/>
+				<policyitem type="copyright" name="Intel" path="net/mac80211/sta_info.c" desc="linux kernel adapter codes"/>
+			</policy>
 	</policylist>
+  <filefilterlist>
+            <filefilter name="defaultFilter" desc="Files not to check">
+                <filteritem type="filepath" name="Documentation/.*" desc="shield"/>
+				<filteritem type="filepath" name="net/mac80211/iface.c" desc="shield"/>
+<filteritem type="filepath" name="net/mac80211/sta_info.c" desc="shield"/>
+<filteritem type="filepath" name="net/mac80211/rx.c" desc="shield"/>	
+            </filefilter>
+        </filefilterlist>
     </oatconfig>
 </configuration>
