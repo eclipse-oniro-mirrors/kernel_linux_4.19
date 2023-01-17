@@ -259,7 +259,7 @@ static void hilog_cover_old_log(size_t buf_len)
 	size_t total_size = buf_len + sizeof(struct hilog_entry);
 	int drop_log_lines = 0;
 
-	while (total_size + hilog_dev.size >= HILOG_BUFFER) {
+	while (total_size + hilog_dev.size > HILOG_BUFFER) {
 		retval = hilog_read_ring_head_buffer((unsigned char *)&header,
 						     sizeof(header));
 		if (retval < 0)
